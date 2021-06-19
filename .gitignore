@@ -1,0 +1,3 @@
+group_vars/*
+!group_vars/all.example
+hosts

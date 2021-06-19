@@ -1,0 +1,9 @@
+remote_user: username
+remote_user_group: user_group
+ansible_sudo_pass: username_password
+ssh_key_filename: ssh_keys_name
+root_user: root
+root_user_pwd: root_user_password
+ansible_port: 111111
+packages: ["ntp",]
+services: ["ntpd",]
