@@ -110,7 +110,7 @@ def create_remote_user(c, verbose=False):
         if verbose: print(f'The user "{remote_user}" already exists in the system')
     else:
         if verbose: print(f'Creating remote user...')
-        c.run(f'useradd -m -G wheel,{remote_user_group} {remote_user}')
+        c.run(f'useradd -m -N -g {remote_user_group} {remote_user}')
         c.run(f'echo {remote_user}:{remote_user_pwd} | chpasswd -c SHA512')
         c.run(f'mkdir /home/{remote_user}/.ssh')
         c.run(f'chown -R {remote_user} /home/{remote_user}/.ssh')
