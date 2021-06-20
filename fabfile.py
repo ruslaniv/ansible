@@ -117,6 +117,30 @@ def create_remote_user(c, verbose=False):
         c.run(f'chgrp -R {remote_user_group} /home/{remote_user}/.ssh')
 
 
+def check_sudoers_file(c, verbose=False):
+    if verbose: print("Checking sudoers file for errors...")
+    result = c.run(f'visudo -csf /etc/sudoers')
+    if result.stdout.strip() == '/etc/sudoers: parsed OK':
+        if verbose: print('Sudoers file successfully changed')
+    else:
+        c.run(f'cp /etc/sudoers.bak /etc/sudoers')
+        print('Something went wrong, sudoers file restored')
+    if verbose: print("Checking the owner of sudoers file...")
+    result = c.run(f'stat --format="%g%u" /etc/sudoers')
+    if result.stdout.strip() == '00':
+        if verbose: print('The sudoers file is owned by the "root:root"')
+    else:
+        if verbose: print('Setting user "root:root" as the owner of sudoers file...')
+        c.run(f'chown root /etc/sudoers')
+    if verbose: print("Checking sudoers file permissions...")
+    result = c.run(f'stat --format="%a" /etc/sudoers')
+    if result.stdout.strip() == '440':
+        if verbose: print("Sudoers files permissions are OK")
+    else:
+        if verbose: print("Setting sudoers file permission to 440...")
+        c.run(f'chmod 440 /etc/sudoers')
+
+
 def add_remote_user_group_to_sudoers(c, verbose=False):
     if verbose: print(f'Getting ready to change sudoers file...')
     if verbose: print(f'Backing up sudoers file...')
@@ -128,13 +152,7 @@ def add_remote_user_group_to_sudoers(c, verbose=False):
     result = result + f'%{remote_user_group} ALL=(ALL) NOPASSWD: ALL'
     f = io.StringIO(result)
     c.put(f, remote='/etc/sudoers')
-    result = c.run(f'visudo -csf /etc/sudoers')
-    if result.stdout.strip() == '/etc/sudoers: parsed OK':
-        if verbose: print('Sudoers file successfully changed')
-    else:
-        c.run(f'cp /etc/sudoers.bak /etc/sudoers')
-        print('Something went wrong, sudoers file restored')
-    #Todo run('chmod 440 /etc/sudoers')
+    check_sudoers_file(c, verbose=verbose)
     #Todo run('dnf upgrade -y')
 
 
