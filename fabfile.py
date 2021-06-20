@@ -153,7 +153,6 @@ def add_remote_user_group_to_sudoers(c, verbose=False):
     f = io.StringIO(result)
     c.put(f, remote='/etc/sudoers')
     check_sudoers_file(c, verbose=verbose)
-    #Todo run('dnf upgrade -y')
 
 
 def upload_ssh_key(c, public_key, verbose=False):
@@ -210,6 +209,18 @@ def install_package(c, package, verbose=False):
         c.run(f'yum install -y {package}')
 
 
+def finalize(c, verbose=False):
+    if verbose: print("Upgrading system packages...")
+    result = c.run(f'yum upgrade -y')
+    if result.return_code == 0:
+        if verbose: print('Successfully upgraded all packages')
+    else:
+        print("Something went wrong:")
+        print(result.stderr)
+    if verbose: print("Rebooting system now...")
+    c.run(f'reboot now', warn=True)
+
+
 def initialize():
     public_key = create_ssh_keys(get_ssh_connection(hosts[0], root_user_pwd), verbose=True)
     for host in hosts:
@@ -222,6 +233,7 @@ def initialize():
         upload_ssh_key(user_c, public_key, verbose=True)
         change_ssh_port(root_c, ssh_port, verbose=True)
         update_known_hosts(root_c, host, new_port=True, verbose=True)
+        finalize(root_c, verbose=True)
 
 
 initialize()
