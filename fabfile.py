@@ -192,6 +192,33 @@ def change_ssh_port(c, port, verbose=False):
         c.run('systemctl restart sshd')
 
 
+def set_static_ip_address(c, host, verbose=False):
+    if verbose: print(f'Getting ready to set the static IP address...')
+    net_interface = str(c.run("ip route get 8.8.8.8 | head -n1 | awk '{print $5}'").stdout).strip()
+    net_config_file = str(c.run(f'find / -xdev -name ifcfg-{net_interface} 2>/dev/null').stdout).strip()
+    geteway = str(c.run(f'ip route show 0.0.0.0/0 dev {net_interface} | cut -d\  -f3').stdout).strip()
+    if net_config_file == '':
+        print('Unable to locate network configuration file...')
+    else:
+        result = str(c.run(f'cat {net_config_file}').stdout)
+        if 'BOOTPROTO="static"' in result:
+            if verbose: print('Boot protocol is already set to static...')
+        else:
+            result = result.replace('BOOTPROTO="dhcp"', 'BOOTPROTO="static"')
+            f = io.StringIO(result)
+            c.put(f, remote=net_config_file)
+        if f'IPADDR={host}' in result:
+            if verbose: print(f'IP address is already set to {host}...')
+        else:
+            result = result + f'NETMASK=255.255.255.0\nGATEWAY={geteway}\nIPADDR={host}\n'
+            f = io.StringIO(result)
+            c.put(f, remote=net_config_file)
+    if verbose: print("Restarting network interface...")
+    c.run('systemctl restart network')
+#ToDO#1 Refactor file search to a separate function
+#ToDO#2 Refactor file write to a separate function
+
+
 def update_firewall_rules(c, verbose=False):
     if verbose: print(f'Getting ready to update firewall rule to allow custom SSH port...')
     install_package(c, 'firewalld')
@@ -221,10 +248,11 @@ def finalize(c, verbose=False):
     c.run(f'reboot now', warn=True)
 
 
-def initialize():
+def initialize(set_static_ip=False):
     public_key = create_ssh_keys(get_ssh_connection(hosts[0], root_user_pwd), verbose=True)
     for host in hosts:
         root_c = get_ssh_connection(host, root_user_pwd, verbose=True)
+        if set_static_ip: set_static_ip_address(root_c, host, verbose=True)
         update_firewall_rules(root_c, verbose=True)
         update_known_hosts(root_c, host, verbose=True)
         create_remote_user(root_c, verbose=True)
@@ -236,4 +264,4 @@ def initialize():
         finalize(root_c, verbose=True)
 
 
-initialize()
+initialize(set_static_ip=True)

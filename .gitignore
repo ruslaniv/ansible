@@ -1,3 +1,5 @@
+__pycache__/
+
 group_vars/*
 !group_vars/all.example
 hosts
