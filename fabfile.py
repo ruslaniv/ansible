@@ -210,7 +210,7 @@ def set_static_ip_address(c, host, verbose=False):
         if f'IPADDR={host}' in result:
             if verbose: print(f'IP address is already set to {host}...')
         else:
-            result = result + f'NETMASK=255.255.255.0\nGATEWAY={geteway}\nIPADDR={host}\n'
+            result = result + f'IPADDR={host}\nNETMASK=255.255.255.0\nGATEWAY={geteway}\nDNS1=1.1.1.1\nDNS2=8.8.8.8\nDNS3=10.0.2.2'
             f = io.StringIO(result)
             c.put(f, remote=net_config_file)
     if verbose: print("Restarting network interface...")
